@@ -2,7 +2,8 @@
 # mantendo em mente que o jogador "X" vai ser sempre o primeiro movimento
 # as combinaçãoes de win game são exemplos
 # Implementar as funções MINIMAX e ALFA-BETA
-# Implementar as funções de 
+# Implementar as funções de heurísticas para o valor de um estado do tabuleiro
+# Implementar main
 
 
 class JogoDaVelha:
