@@ -1,0 +1,35 @@
+# Código utilizado para estruturar sequência do trabalho
+# mantendo em mente que o jogador "X" vai ser sempre o primeiro movimento
+# as combinaçãoes de win game são exemplos
+# Implementar as funções MINIMAX e ALFA-BETA
+# Implementar as funções de 
+
+
+class JogoDaVelha:
+    def __init__(self):
+        self.tabuleiro = [' ' for _ in range(9)]
+        self.jogador_atual = 'X' 
+
+    def imprime_tabuleiro(self):
+        for i in range(0, 9, 3):
+            print(f'{self.tabuleiro[i]} | {self.tabuleiro[i+1]} | {self.tabuleiro[i+2]}')
+            if i < 6:
+                print('---------')
+
+    def jogada_valida(self, pos):
+        return self.tabuleiro[pos] == ' '
+
+    def jogada(self, pos):
+        if self.jogada_valida(pos):
+            self.tabuleiro[pos] = self.jogador_atual
+            self.jogador_atual = 'O' if self.jogador_atual == 'X' else 'X'
+        else:
+            print('Jogada inválida!')
+
+    def vencedor(self):
+        vencedor = None
+        combinacoes_vencedoras = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
+        for combinacao in combinacoes_vencedoras:
+            if self.tabuleiro[combinacao[0]] == self.tabuleiro[combinacao[1]] == self.tabuleiro[combinacao[2]] != ' ':
+                vencedor = self.tabuleiro[combinacao[0]]
+        return vencedor
