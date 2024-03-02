@@ -1,0 +1,131 @@
+import numpy as np
+import GameInterface
+
+class MoveError(Exception):
+    pass
+
+class Game:
+    Tamanho = 7
+    Piratas = 12
+    Barcos = 8
+
+    def __init__(self, start):
+        # Inicialização do tabuleiro
+        self.tabuleiro = np.full((self.Tamanho, self.Tamanho), ' ')
+        self.tabuleiro[2:5, 2:5] = 'B'
+        self.tabuleiro[3][3] = 'N'
+        self.tabuleiro[2:5, [0, 6]] = 'P'
+        self.tabuleiro[[0, 6], 2:5] = 'P'
+
+        self.peca_barco = [(i, j) for i in range(2, 5) for j in range(2, 5)]
+        self.peca_barco.remove((3, 3))
+        self.peca_pirata = [(i, j) for i in range(7) for j in range(7) if self.tabuleiro[i][j] == -1]
+        self.flag = (3, 3)
+
+        self.numMovimentos = 0
+        self.Mov = start
+        self.estado_atual = 0
+        self.nextMove = None
+
+    def minimax(self, depth, maximizing_player, alpha, beta):
+        if depth == 0 or self.game_over():
+            return self.avaliar_tabuleiro(), None
+
+        if maximizing_player:
+            max_eval = float('-inf')
+            best_move = None
+            for move in self.gerando_mov():
+                self.make_move(move)
+                eval = self.minimax(depth - 1, False, alpha, beta)[0]
+                self.undo_move(move)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return max_eval, best_move
+        else:
+            min_eval = float('inf')
+            best_move = None
+            for move in self.gerando_mov():
+                self.make_move(move)
+                eval = self.minimax(depth - 1, True, alpha, beta)[0]
+                self.undo_move(move)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return min_eval, best_move
+
+    def avaliar_tabuleiro(self):
+        # Heurística de contagem de peças
+        contagem_jogador = sum(peca == 'N' for linha in self.tabuleiro for peca in linha)
+        contagem_adversario = sum(peca == 'B' for linha in self.tabuleiro for peca in linha)
+        return contagem_jogador - contagem_adversario
+
+    def heuristica_distancia_borda(self):
+        for i in range(7):
+            for j in range(7):
+                if self.tabuleiro[i][j] == 'N':
+                    return min(i, j, 6 - i, 6 - j)
+
+    def gerando_mov(self):
+        movimentos = []
+        for i in range(7):
+            for j in range(7):
+                if self.tabuleiro[i][j] != ' ':
+                    for dx in [-1, 0, 1]:
+                        for dy in [-1, 0, 1]:
+                            nx, ny = i + dx, j + dy
+                            if 0 <= nx < 7 and 0 <= ny < 7 and self.tabuleiro[nx][ny] == ' ':
+                                movimentos.append((i, j, nx, ny))
+        return movimentos
+
+    def movimento(self, original_pos, next_pos):
+        old_x, old_y = original_pos
+        new_x, new_y = next_pos
+
+        if not (0 <= old_x < 7 and 0 <= old_y < 7 and 0 <= new_x < 7 and 0 <= new_y < 7):
+            raise MoveError("Movimento fora do tabuleiro")
+        if self.tabuleiro[old_x][old_y] == ' ':
+            raise MoveError("Não há peça na posição original")
+        if self.tabuleiro[new_x][new_y] != ' ':
+            raise MoveError("A posição de destino já está ocupada")
+        if abs(old_x - new_x) > 1 or abs(old_y - new_y) > 1:
+            raise MoveError("As peças só podem se mover uma casa por vez")
+
+        self.tabuleiro[new_x][new_y] = self.tabuleiro[old_x][old_y]
+        self.tabuleiro[old_x][old_y] = ' '
+
+    def make_move(self, move):
+        old_x, old_y, new_x, new_y = move
+        self.tabuleiro[new_x][new_y] = self.tabuleiro[old_x][old_y]
+        self.tabuleiro[old_x][old_y] = ' '
+
+    def undo_move(self, move):
+        old_x, old_y, new_x, new_y = move
+        self.tabuleiro[old_x][old_y] = self.tabuleiro[new_x][new_y]
+        self.tabuleiro[new_x][new_y] = ' '
+
+    def game_over(self):
+        x, y = self.flag
+        return x in [0, 6] or y in [0, 6]
+
+
+def main():
+    game = Game(1)  # Começar com o jogador 1 (ouro)
+    depth = 3  # Profundidade máxima da árvore Minimax
+
+    while not game.game_over():
+        score, best_move = game.minimax(depth, game.to_move == 1, float('-inf'), float('inf'))
+        print("Melhor movimento:", best_move)
+        game.make_move(best_move)
+        game.to_move *= -1  # Alterna o jogador
+
+    if __name__ == "__main__":
+        main()
+        interface = GameInterface(game)
+        interface.run()
