@@ -1,0 +1,59 @@
+import numpy as np
+import tkinter as tk
+from tkinter import messagebox
+from Game import Game
+
+
+class MoveError(Exception):
+    pass
+
+
+class GameInterface:
+    def __init__(self, game):
+        self.game = game
+        self.root = tk.Tk()
+        self.root.title("Breakthru Game")
+        self.board_buttons = [[None for _ in range(7)] for _ in range(7)]
+        self.selected_piece = None
+        self.create_board()
+
+    def create_board(self):
+        for i in range(7):
+            for j in range(7):
+                button = tk.Button(self.root, command=lambda x=i, y=j: self.on_button_click(x, y))
+                button.grid(row=i, column=j)
+                self.board_buttons[i][j] = button
+        self.update_board()
+
+    def update_board(self):
+        for i in range(7):
+            for j in range(7):
+                text = ' ' if self.game.tabuleiro[i][j] == ' ' else 'N' if self.game.tabuleiro[i][j] == 'N' else 'B' if \
+                self.game.tabuleiro[i][j] == 'B' else 'P'
+                self.board_buttons[i][j].config(text=text)
+
+    def atualiza_tabuleiro(self):
+        for i in range(7):
+            for j in range(7):
+                text = ' ' if self.game.tabuleiro[i][j] == ' ' else 'N' if self.game.tabuleiro[i][j] == 'N' else 'B' if \
+                self.game.tabuleiro[i][j] == 'B' else 'P'
+                self.board_buttons[i][j].config(text=text)
+
+    def on_button_click(self, x, y):
+        if self.selected_piece:
+            try:
+                self.game.movimento(self.selected_piece, (x, y))
+                self.atualiza_tabuleiro()
+                self.selected_piece = None
+            except MoveError:
+                messagebox.showerror("Movimento Inválido", "O movimento que você tentou fazer é inválido.")
+        else:
+            self.selected_piece = (x, y)
+
+    def run(self):
+        self.root.mainloop()
+
+game = Game(1)
+
+interface = GameInterface(game)
+interface.run()
