@@ -81,41 +81,33 @@ class GameInterface:
         return len(pecas) == 0
 
     def on_button_click(self, event):
-        # Verificar se ainda há movimentos disponíveis na rodada
         if all(mov == 0 for mov in self.movimentos_restantes.values()):
             print("Todos os movimentos desta rodada foram utilizados.")
             return
 
         x, y = event.x // self.celula, event.y // self.celula
         if not self.sel_piratas:
-            # Se nenhuma peça foi selecionada
             if (x, y) in self.piratas:
-                # Se a posição clicada contém uma peça de piratas
                 self.sel_piratas = (x, y)
                 self.criar_pecas()
                 self.movimentos_restantes["piratas"] -= 1
             elif (x, y) in self.barcos:
-                # Se a posição clicada contém um barco
                 self.sel_piratas = (x, y)
                 self.criar_pecas()
                 self.movimentos_restantes["barcos"] -= 1
             elif (x, y) in self.flag:
-                # Se a posição clicada contém a bandeira
                 self.sel_piratas = (x, y)
                 self.criar_pecas()
                 self.movimentos_restantes["flag"] -= 1
         else:
-            # Se uma peça já foi selecionada
             if (x, y) in {(self.sel_piratas[0] + 1, self.sel_piratas[1]),
                           (self.sel_piratas[0] - 1, self.sel_piratas[1]),
                           (self.sel_piratas[0], self.sel_piratas[1] + 1),
                           (self.sel_piratas[0], self.sel_piratas[1] - 1)}:
-                # Verificar se a posição clicada está adjacente
                 tipo_peca = self.get_tipo_peca(self.sel_piratas)
                 if (x, y) not in self.piratas and (x, y) not in self.barcos and (x, y) not in self.flag:
                     # Se a posição clicada está vazia
                     if tipo_peca:
-                        # Verificar se a peça selecionada ainda existe
                         if self.sel_piratas in self.piratas:
                             self.piratas.remove(self.sel_piratas)
                             self.piratas.add((x, y))
@@ -134,7 +126,6 @@ class GameInterface:
                         self.criar_tabuleiro()
                         self.criar_pecas()
                 elif (x, y) in self.barcos:
-                    # Se a posição clicada contém um barco
                     if tipo_peca == "piratas":
                         self.piratas.remove(self.sel_piratas)
                         self.piratas.add((x, y))
@@ -149,7 +140,6 @@ class GameInterface:
                             print("O jogo acabou.")
                             exit(0)
                 elif (x, y) in self.piratas:
-                    # Se a posição clicada contém uma peça de piratas
                     if tipo_peca == "barcos":
                         self.barcos.remove(self.sel_piratas)
                         self.barcos.add((x, y))
