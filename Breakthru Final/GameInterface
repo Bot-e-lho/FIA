@@ -1,5 +1,7 @@
 import tkinter as tk
 
+from Game import Game
+
 
 class GameInterface:
     def __init__(self, window):
@@ -9,7 +11,7 @@ class GameInterface:
         self.window = window
         self.window.title("Breakthru")
         self.largura = 800
-        self.altura = 800
+        self.altura = 600
         self.barcos = {(2, 2), (2, 3), (2, 4), (4, 2), (4, 3), (4, 4), (3, 2), (3, 4)}
         self.flag = {(3, 3)}
         self.piratas = {(2, 0), (3, 0), (4, 0), (6, 2), (6, 3), (6, 4), (0, 2), (0, 3), (0, 4), (2, 6), (3, 6), (4, 6)}
@@ -27,8 +29,13 @@ class GameInterface:
             "piratas": self.max_mov,
             "flag": self.max_mov
         }
+        self.movimento_feito = False
         self.criar_tabuleiro()
         self.criar_pecas()
+        self.turn_label = tk.Label(self.window, text="Turno: Jogador 1")
+        self.turn_label.pack()
+        self.round_label = tk.Label(self.window, text="Rodada: 1")
+        self.round_label.pack()
 
     def criar_tabuleiro(self):
         for i in range(self.tamanho):
@@ -36,6 +43,25 @@ class GameInterface:
                 x0, y0 = j * self.celula, i * self.celula
                 x1, y1 = x0 + self.celula, y0 + self.celula
                 self.canvas.create_rectangle(x0, y0, x1, y1, fill="orange", outline="black")
+
+    def realizar_movimento(self, x, y, tipo_peca):
+        if tipo_peca:
+            if self.sel_piratas in self.piratas:
+                self.piratas.remove(self.sel_piratas)
+                self.piratas.add((x, y))
+                self.movimentos_restantes[tipo_peca] -= 1
+            elif self.sel_piratas in self.barcos:
+                self.barcos.remove(self.sel_piratas)
+                self.barcos.add((x, y))
+                self.movimentos_restantes[tipo_peca] -= 1
+            elif self.sel_piratas in self.flag:
+                self.flag.remove(self.sel_piratas)
+                self.flag.add((x, y))
+                self.movimentos_restantes[tipo_peca] -= 1
+            self.sel_piratas = None
+            self.canvas.delete("all")
+            self.criar_tabuleiro()
+            self.criar_pecas()
 
     def criar_pecas(self):
         for peca in self.barcos:
@@ -61,14 +87,6 @@ class GameInterface:
         rad = self.celula // 3
         self.canvas.create_oval(x_pos - rad, y_pos - rad, x_pos + rad, y_pos + rad, fill=fill, outline=fill)
 
-    def check_flag(self):
-        posicoes = [(0, 0), (0, 6), (6, 0), (6, 6), (6, 5), (6, 4), (6, 3), (6, 2), (6, 1), (1, 6), (2, 6), (3, 6),
-                    (4, 6), (5, 6)]
-        flag_position = next(iter(self.flag), None)
-        if flag_position in posicoes:
-            print("Game over")
-            exit(0)
-
     def avaliar_tabuleiro(self, tipo):
         if tipo == "piratas":
             pecas = self.piratas
@@ -80,11 +98,20 @@ class GameInterface:
             return False
         return len(pecas) == 0
 
-    def on_button_click(self, event):
-        if all(mov == 0 for mov in self.movimentos_restantes.values()):
-            print("Todos os movimentos desta rodada foram utilizados.")
-            return
+    def is_game_over(self):
+        return self.num_barcos == 0 or self.num_piratas == 0
 
+    def update_turn_label(self):
+        player = "Jogador 1" if self.rodada % 2 != 0 else "Computador"
+        self.turn_label.config(text="Turno: {}".format(player))
+
+    def update_round_label(self):
+        self.round_label.config(text="Rodada: {}".format(self.rodada))
+
+    def on_button_click(self, event):
+        if self.movimento_feito:
+            print("Já foi feito um movimento nesta rodada.")
+            return
         x, y = event.x // self.celula, event.y // self.celula
         if not self.sel_piratas:
             if (x, y) in self.piratas:
@@ -106,58 +133,17 @@ class GameInterface:
                           (self.sel_piratas[0], self.sel_piratas[1] - 1)}:
                 tipo_peca = self.get_tipo_peca(self.sel_piratas)
                 if (x, y) not in self.piratas and (x, y) not in self.barcos and (x, y) not in self.flag:
-                    # Se a posição clicada está vazia
                     if tipo_peca:
-                        if self.sel_piratas in self.piratas:
-                            self.piratas.remove(self.sel_piratas)
-                            self.piratas.add((x, y))
-                            self.movimentos_restantes[tipo_peca] -= 1
-                        elif self.sel_piratas in self.barcos:
-                            self.barcos.remove(self.sel_piratas)
-                            self.barcos.add((x, y))
-                            self.movimentos_restantes[tipo_peca] -= 1
-                        elif self.sel_piratas in self.flag:
-                            self.flag.remove(self.sel_piratas)
-                            self.flag.add((x, y))
-                            self.movimentos_restantes[tipo_peca] -= 1
-                        self.sel_piratas = None
-                        self.check_flag()
-                        self.canvas.delete("all")
-                        self.criar_tabuleiro()
-                        self.criar_pecas()
-                elif (x, y) in self.barcos:
-                    if tipo_peca == "piratas":
-                        self.piratas.remove(self.sel_piratas)
-                        self.piratas.add((x, y))
-                        self.barcos.remove((x, y))
-                        self.canvas.delete("all")
-                        self.criar_tabuleiro()
-                        self.criar_pecas()
-                        self.sel_piratas = None
-                        self.num_barcos -= 1
-                        print(self.num_barcos)
-                        if self.num_barcos == 0:
-                            print("O jogo acabou.")
-                            exit(0)
-                elif (x, y) in self.piratas:
-                    if tipo_peca == "barcos":
-                        self.barcos.remove(self.sel_piratas)
-                        self.barcos.add((x, y))
-                        self.piratas.remove((x, y))
-                        self.canvas.delete("all")
-                        self.criar_tabuleiro()
-                        self.criar_pecas()
-                        self.sel_piratas = None
-                        self.num_piratas -= 1
-                        print(self.num_piratas)
-                        if self.num_piratas == 0:
-                            print("Game over")
-                            exit(0)
+                        self.realizar_movimento(x, y, tipo_peca)
+                        self.movimento_feito = True
+                        self.rodada += 1
+                        self.update_turn_label()
+                        self.update_round_label()
+                        self.game_loop()
+                        self.window.update()
             else:
                 print("Movimento inválido")
                 self.sel_piratas = None
-                self.sel_barcos = None
-                self.sel_flag = None
                 self.criar_pecas()
 
     def get_tipo_peca(self, posicao):
@@ -170,13 +156,46 @@ class GameInterface:
         else:
             return None
 
+    def game_loop(self):
+        game = Game(self)
+        if self.rodada == 1:
+            print("Rodada 1.")
+            self.update_round_label()
+            self.update_turn_label()
+            self.window.mainloop()
+        else:
+            print("Rodada do computador")
+            self.update_round_label()
+            game.make_move_cpu()
+            self.rodada = 1
+            self.window.update()
+            self.game_loop()
+
+    def get_available_moves(self):
+        available_moves = []
+        for x in range(self.tamanho):
+            for y in range(self.tamanho):
+                if (x, y) not in self.piratas and (x, y) not in self.barcos and (x, y) not in self.flag:
+                    available_moves.append((x, y))
+        return available_moves
 
 def main():
     interface = tk.Tk()
     interface.title("Breakthru")
     game_interface = GameInterface(interface)
+    game = Game(game_interface)
+
+    def make_move_wrapper():
+        game.make_move_cpu()
+        if not game_interface.is_game_over():
+            interface.after(100, make_move_wrapper)
+
+    game_interface.game_loop()
+
     interface.mainloop()
+
 
 
 if __name__ == "__main__":
     main()
+
